@@ -11,7 +11,7 @@ stage('Test') {
          sh 'node --version'
         }
       }
-    }
+     }
     }
    }
-  }
+  
