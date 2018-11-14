@@ -7,7 +7,7 @@ stage('Test') {
       steps {
         container('nodejs') {
           echo 'Hello World 2!'   
-          sh 'java -version'
+         sh 'node --version'
         }
       }
     }
