@@ -3,6 +3,7 @@ agent none
 
     options { 
     buildDiscarder(logRotator(numToKeepStr: '2'))
+    skipDefaultCheckout true
   }
     post {
     aborted {
