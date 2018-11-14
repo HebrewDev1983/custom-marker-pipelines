@@ -24,6 +24,7 @@ stage('Test') {
          sh 'node --version'
         }
      }
+     agent any
       stage('Build and Push Image') {
       when {
          beforeAgent true
