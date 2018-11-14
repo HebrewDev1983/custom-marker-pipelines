@@ -30,7 +30,7 @@ stage('Test') {
         branch 'master'
       }
         options {
-        timeout(time: 30, unit: 'SECONDS') 
+        timeout(time: 3000, unit: 'SECONDS') 
       }
       input {
        message "Should we deploy?"
