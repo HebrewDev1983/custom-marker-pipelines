@@ -41,7 +41,7 @@ stage('Test') {
       }
       input {
        message "Should we deploy?"
-        submitter "dwalker"
+        submitter "dwalker,russcoh"
         submitterParameter "APPROVER"
       }
       steps {
