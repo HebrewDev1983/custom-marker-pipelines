@@ -1,56 +1,115 @@
+library 'cd-accel@completed'
+def testPodYaml = libraryResource 'podtemplates/nodejs-app/web-test-pod.yml'
+def loadTestPodYaml = libraryResource 'podtemplates/nodejs-app/load-test-pod.yml'
 pipeline {
-agent none
-
-    options { 
+  agent none
+  options { 
     buildDiscarder(logRotator(numToKeepStr: '2'))
     skipDefaultCheckout true
+    preserveStashes(buildCount: 2)
   }
-    post {
-    aborted {
-      echo "Why didn't you push my button?"
-    }
-    success {
-          slackSend "${JOB_NAME} pipeline job is awaiting approval at: ${RUN_DISPLAY_URL}"
-                    stash name: 'app', includes: '*.js, public/**, views/*, Dockerfile'
-        }
-    }
   stages {
-stage('Test') {
-  agent { label 'nodejs-app' }
-      steps {
-      checkout scm
-        container('nodejs') {
-          echo 'Hello World 2!'   
-         sh 'node --version'
+    stage('Tests') {
+      parallel {
+        stage('Web Tests') {
+          agent {
+            kubernetes {
+              label 'nodejs-testcafe'
+              yaml testPodYaml
+            }
+          }
+          stages {
+            stage('Nodejs Setup') {
+              steps {
+                checkout scm
+                defineProps('.nodejs-app', [npmPackages: 'express pug'])            
+                container('nodejs') {
+                  sh """
+                    npm i -S ${npmPackages}
+                    node ./hello.js &
+                  """
+                }
+              }   
+            }
+            stage('Testcafe') {
+              steps {
+                container('testcafe') {
+                  sh '/opt/testcafe/docker/testcafe-docker.sh "chromium --no-sandbox" tests/*.js -r xunit:res.xml'
+                }
+              }   
+            }
+          }  
+          post {
+            success {
+              stash name: 'app', includes: '*.js, public/**, views/*, Dockerfile'
+            }
+            always {
+              junit 'res.xml'
+            }
+          } 
+        }
+        stage('Load Test') {
+          agent {
+            kubernetes {
+              label 'nodejs-ab'
+              yaml loadTestPodYaml
+            }
+          }
+          stages {
+            stage('Nodejs Setup') {
+              steps {
+                checkout scm
+                container('nodejs') {
+                  sh '''
+                    npm install express
+                    npm install pug --save
+                    node ./hello.js &
+                  '''
+                }
+              }   
+            }
+            stage('Apache Benchmark') {  
+              steps {
+                container('apache-benchmark') {
+                  sh 'ab -n 10 -c 4 -s 5 http://localhost:8080/'
+                }
+              }
+            }
+          }
         }
       }
-     }
-      stage('Build and Push Image') {
-      when {
-         beforeAgent true
-         branch 'master'
-      }
-      
-      steps {
-         echo "TODO - build and push image"
-      }
     }
-        stage('Deploy') {
+    stage('Build and Push Image') {
       when {
         beforeAgent true
         branch 'master'
       }
-        options {
-        timeout(time: 3000, unit: 'SECONDS') 
+      steps {
+        dockerBuildPush(env.IMAGE_NAME, env.IMAGE_TAG) {
+          unstash 'app'
+        }
+      }
+      post {
+        success {
+          slackSend "${JOB_NAME} pipeline job is awaiting approval at: ${RUN_DISPLAY_URL}"
+        }
+      }
+    }
+    stage('Deploy') {
+      when {
+        beforeAgent true
+        branch 'master'
+      }
+      options {
+        timeout(time: 60, unit: 'SECONDS') 
       }
       input {
-       message "Should we deploy?"
-        submitter "dwalker,russcoh"
+        message "Should we deploy?"
         submitterParameter "APPROVER"
       }
       steps {
-         echo "Continuing with deployment - approved by ${APPROVER}"
+        kubeDeploy(env.IMAGE_NAME, env.IMAGE_TAG)
       }
-    }
-    }
-   }
+    }   
+  }
+}
