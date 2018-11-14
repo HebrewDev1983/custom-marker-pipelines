@@ -9,6 +9,9 @@ agent none
     aborted {
       echo "Why didn't you push my button?"
     }
+    success {
+          slackSend "${JOB_NAME} pipeline job is awaiting approval at: ${RUN_DISPLAY_URL}"
+        }
     }
   stages {
 stage('Test') {
