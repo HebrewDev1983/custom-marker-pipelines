@@ -33,7 +33,7 @@ stage('Test') {
       
       steps {
          echo "TODO - build and push image"
-         unstash 'app'
+       //  unstash 'app'
       }
     }
         stage('Deploy') {
