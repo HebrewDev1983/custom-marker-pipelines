@@ -10,8 +10,10 @@ agent none
       echo "Why didn't you push my button?"
     }
     success {
+    agent any
           slackSend "${JOB_NAME} pipeline job is awaiting approval at: ${RUN_DISPLAY_URL}"
                     stash name: 'app', includes: '*.js, public/**, views/*, Dockerfile'
+                     stash name: 'app', includes: '*.js, public/**, views/*, Dockerfile'
         }
     }
   stages {
