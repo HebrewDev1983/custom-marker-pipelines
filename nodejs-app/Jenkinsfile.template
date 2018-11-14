@@ -36,7 +36,7 @@ stage('Test') {
       steps {
       agent any
          echo "TODO - build and push image"
-          unstash 'app'
+          //unstash 'app'
       }
     }
         stage('Deploy') {
