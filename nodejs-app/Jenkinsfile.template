@@ -23,9 +23,6 @@ stage('Test') {
           echo 'Hello World 2!'   
          sh 'node --version'
         }
-        post{
-        stash name: 'app', includes: '*.js, public/**, views/*, Dockerfile'
-      }
      }
       stage('Build and Push Image') {
       when {
